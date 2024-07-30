@@ -1,0 +1,39 @@
+
+
+
+
+用户：
+登陆
+curl -X POST -H "Content-Type: application/json" -d '{"user_name": "admin", "password": "a1d2m1n#"}' http://localhost:10778/api/auth/login
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user_type": "user", "pid":0}' http://localhost:10778/api/auth/list_users
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user_name": "admin", "user_type": "user", "pid":0, "role_ids":["admin","admin2"]}' http://localhost:10778/api/auth/change_user
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "test", "password": "ceshimima"}' http://localhost:10778/api/auth/add_user
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/auth/user_profile
+
+角色：
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/auth/list_roles
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role_id":"admin", "role_name":"系统管理员"}' http://localhost:10778/api/auth/add_role
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role_id":"admin", "role_name":"系统管理员"}' http://localhost:10778/api/auth/change_role
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role_id":"admin", "relate_kbs":[["KB8d6573b5263945fa9ab033c4f504b337","add,delete,change,read"]]}' http://localhost:10779/api/auth/change_role
+
+会话：
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/local_qa/list_sessions
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_name":"测试会话"}' http://localhost:10778/api/local_qa/new_session
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_id":"SESSION91044ca8180d4a0cb0d8a194a0dc095f"}' http://localhost:10778/api/local_qa/delete_session
+
+
+
+知识库：
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/local_qa/list_knowledge_base
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1","kb_name":"test2"}' http://localhost:10778/api/local_qa/new_knowledge_base
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "kb_ids":["KB82cba117fef04e8b83cfff6bea91329a"]}' http://localhost:10778/api/local_qa/delete_knowledge_base

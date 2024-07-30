@@ -49,26 +49,56 @@ class KnowledgeBaseManager:
     def create_tables_(self):
         query = """
             CREATE TABLE IF NOT EXISTS User (
-                id BIGINT NOT NULL AUTO_INCREMENT,
-                pid BIGINT NOT　NULL,
+                pid integer NOT　NULL,
                 user_id VARCHAR(255) PRIMARY KEY,
                 user_name VARCHAR(255),
                 user_type VARCHAR(255),
                 password VARCHAR(255),
                 telephone VARCHAR(255),
-                user_state VARCHAR(255),
+                user_state VARCHAR(255) default 'enable',
                 wechat_id VARCHAR(255),
-                role_ids VARCHAR(255)
+                region VARCHAR(255),
+                profile_pic TEXT,
+                role_ids VARCHAR(255),
+                create_by VARCHAR(255),
+                add_datetime TIMESTAMP default (datetime('now', 'localtime'))
             );
         """
         self.execute_query_(query, (), commit=True)
+        #初始用户
+        admin_exist = self.check_user_exist_('admin1')
+        if not admin_exist:
+            query = "insert into User (pid, user_id, user_name, user_type, password) VALUES (?,?,?,?,?)"
+            self.execute_query_(query,(0, 'admin1', 'admin', 'user', 'a1d2m1n#'), commit=True)
+
+        #refresh token 管理
+        query = """
+                    CREATE TABLE IF NOT EXISTS UserToken (
+                        user_id VARCHAR(255) PRIMARY KEY,
+                        refresh_token VARCHAR(255),
+                        enable INTEGER DEFAULT 1,
+                        add_datetime TIMESTAMP default (datetime('now', 'localtime')),
+                        FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE
+                    );
+                """
+        self.execute_query_(query, (), commit=True)
+
         #角色role
         query = """
                     CREATE TABLE IF NOT EXISTS Role (
                         role_id VARCHAR(255) PRIMARY KEY,
-                        role_name VARCHAR(255),
+                        role_name VARCHAR(255)
                     );
                 """
+        self.execute_query_(query, (), commit=True)
+
+        query = """
+                    CREATE TABLE IF NOT EXISTS RolePermission (
+                                role_id VARCHAR(255),
+                                kb_id VARCHAR(255),
+                                kb_permission VARCHAR(255)
+                            );
+                        """
         self.execute_query_(query, (), commit=True)
 
         query = """
@@ -280,9 +310,8 @@ class KnowledgeBaseManager:
         return user_id
 
     def new_session(self, user_id, session_id, session_name=None):
-        query = "INSERT INTO Session (session_id, session_name, user_id) VALUES (?,?,?)"
-        self.execute_query_(query,(session_id, session_name, user_id))
-        return session_id, "success"
+        query = "INSERT INTO Session (session_id, session_name, user_id, deleted) VALUES (?,?,?,0)"
+        self.execute_query_(query,(session_id, session_name, user_id), commit=True)
 
     def rename_session(self, user_id, session_id, new_session_name):
         query = "UPDATE Session set session_name = ? where session_id = ? AND user_id = ?"
@@ -558,32 +587,63 @@ class KnowledgeBaseManager:
             total_deleted += res
         debug_logger.info(f"delete_faqs count: {total_deleted}")
 
-    def add_user(self, user_id, pid, user_type, user_name=None):
-        query = "INSERT INTO User (user_id, pid, user_type, user_name) VALUES (?, ?, ?, ?)"
-        r = self.execute_query_(query, (user_id,pid, user_type, user_name), commit=True, fetch=True)
-        return user_id, r['id']
-
-    def change_user(self, user_id, password, profile_pic, user_state, telephone, region, wechat_id, role_ids):
+    def add_user(self, user_id, pid, user_type, user_name, password, profile_pic, user_state,
+                 telephone, region, wechat_id, role_ids, create_by):
         role_ids_str = ','.join(role_ids)
-        query = "update User set password=?, profile_pic=?, user_state=?, telephone=?, region=?, wechat_id=?, role_ids=? " \
-                " where user_id=?"
-        self.execute_query_(query, (password, profile_pic, user_state, telephone, region, wechat_id, role_ids_str, user_id), commit=True)
+        adddatetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query = "INSERT INTO User (user_id, pid, user_type, user_name,password, " \
+                "profile_pic, user_state,telephone, region, wechat_id, role_ids,create_by,add_datetime) " \
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?,?,?)"
+        self.execute_query_(query, (user_id, pid, user_type, user_name, password, profile_pic,
+                                        user_state, telephone, region, wechat_id, role_ids_str,create_by,adddatetime), commit=True)
 
-    def get_user_list(self):
-        query = "SELECT id, pid, user_id, user_type from User "
-        return self.execute_query_(query, (), commit=True, fetch=True)
+    def change_user(self, user_id, user_name, password, profile_pic, user_state, telephone, region, wechat_id, role_ids):
+        #role_ids_str = ','.join(role_ids)
+        query = "update User set user_name=?, password=?, profile_pic=?, user_state=?, telephone=?, region=?, wechat_id=?, role_ids=? " \
+                " where user_id=?"
+        self.execute_query_(query, (user_name, password, profile_pic, user_state, telephone, region, wechat_id, role_ids, user_id), commit=True)
+
+    def change_user(self, user_id, profile_pic):
+        #role_ids_str = ','.join(role_ids)
+        query = "update User set profile_pic=? where user_id = ? "
+        self.execute_query_(query, (profile_pic, user_id), commit=True)
+
+    def get_user_list(self, user_type, pid=-1):
+        if user_type == 'group':
+            query = "SELECT user_id, ROWID as id, pid, user_name, user_type from User where user_type = ?"
+            return self.execute_query_(query, (user_type,), fetch=True)
+        else:
+            query = "SELECT user_id, ROWID as id, pid, user_name, user_type, telephone, password, user_state, profile_pic," \
+                    "wechat_id,role_ids,region,create_by,add_datetime from User where user_type=? AND pid=?"
+            return self.execute_query_(query, (user_type, pid), fetch=True)
 
     def get_user(self, user_id):
-        query = "SELECT telephone, password, user_state, wechat_id, role_ids, profile_pic from User " \
+        query = "SELECT ROWID as id, pid, user_name,user_type, telephone, password, user_state, " \
+                "region, profile_pic, wechat_id, role_ids,add_datetime from User " \
                 " where user_id=?"
-        return self.execute_query_(query, (user_id,), commit=True, fetch=True)
+        return self.execute_query_(query, (user_id,), fetch=True)
 
     def get_passwd(self, user_id):
         query = "SELECT password from User where user_id = ?"
         return self.execute_query_(query, (user_id,), fetch=True)
 
+    def check_passwd(self, user_name, password):
+        query = "SELECT user_id from User where user_name = ? and password = ?"
+        result = self.execute_query_(query, (user_name,password), fetch=True)
+        user_id = ''
+        is_true = result is not None and len(result) > 0
+        if is_true:
+            user_id = result[0][0]
+        return is_true,user_id
+
     def check_user_exist(self, user_id):
         return self.check_user_exist_(user_id)
+
+    def check_user_name_exist(self, user_name):
+        query = "SELECT user_name FROM User WHERE user_name = ?"
+        result = self.execute_query_(query, (user_name,), fetch=True)
+        debug_logger.info("check_username_exist {}".format(result))
+        return result is not None and len(result) > 0
 
     def change_passwd(self, user_id, new_password):
         query = "UPDATE User set password = ? where user_id = ?"
@@ -593,6 +653,19 @@ class KnowledgeBaseManager:
         query = "DELETE from User where user_id = ?"
         self.execute_query_(query, (user_id,), commit=True)
 
+    #token 管理
+    def add_refresh_token(self, user_id, refresh_token):
+        query = "INSERT INTO UserToken(user_id, refresh_token) VALUES (?, ?)"
+        self.execute_query_(query, (user_id, refresh_token), commit=True)
+
+    def get_refresh_token(self, user_id):
+        query = "SELECT refresh_token from UserToken where user_id = ? AND enable = 1"
+        r = self.execute_query_(query, (user_id,), fetch=True)
+        if r is not None and len(r) > 0:
+            return r[0][0]
+        else:
+            return None
+
     def get_role_list(self):
         query = "SELECT role_id, role_name from Role "
         return self.execute_query_(query, (), commit=True, fetch=True)
@@ -600,6 +673,12 @@ class KnowledgeBaseManager:
     def add_role(self, role_id, role_name):
         query = "INSERT INTO Role (role_id, role_name) VALUES (?, ?)"
         self.execute_query_(query, (role_id, role_name), commit=True)
+
+    def get_role_permissions(self, role_ids):
+        placeholders = ','.join(['?'] * len(role_ids))
+        query = "SELECT role_id, kb_id, kb_permission from RolePermission where role_id in ({}) " \
+                "AND kb_id in (SELECT kb_id FROM KnowledgeBase)".format(placeholders)
+        return self.execute_query_(query, role_ids, fetch=True)
 
     def check_role_exist(self, role_id):
         query = "SELECT role_id FROM Role WHERE role_id = ?"
@@ -611,6 +690,18 @@ class KnowledgeBaseManager:
         query = "UPDATE Role set role_name = ? where role_id = ?"
         self.execute_query_(query, (role_name, role_id), commit=True)
         debug_logger.info("change role {}".format(role_id))
+
+    def change_role_permissions(self, role_id, kb_permissions):
+        for i in range(len(kb_permissions)):
+            kb_p = kb_permissions[i]
+            query = "SELECT role_id FROM RolePermission where role_id = ? AND kb_id = ?"
+            r = self.execute_query_(query, (role_id,kb_p[0]))
+            if r is not None and len(r)>0:
+                query = "UPDATE RolePermission set kb_permission = ? where role_id = ? AND kb_id = ?"
+            else:
+                query = "INSERT INTO RolePermission (kb_permission, role_id, kb_id) VALUES (?, ?, ?)"
+            is_commit = (i + 1) == len(kb_permissions)
+            self.execute_query_(query, ( kb_p[1], role_id, kb_p[0]), commit= is_commit)
 
     def delete_role(self, role_id):
         query = "DELETE from Role where role_id = ?"

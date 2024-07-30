@@ -35,7 +35,7 @@ parser = ArgumentParser()
 from sanic import Sanic
 from sanic import response as sanic_response
 from sanic.worker.manager import WorkerManager
-from sanic_jwt import Initialize
+from sanic_jwt import Initialize,initialize
 from dotenv import dotenv_values
 import signal
 import requests
@@ -170,22 +170,27 @@ from qanything_kernel.core.local_doc_qa import LocalDocQA
 WorkerManager.THRESHOLD = 6000
 
 config = dotenv_values(".env")
-application = config["APPLICATION"]
+application = 'qa_test'#config["APPLICATION"]
 if application is None:
     application = "QA"
 app = Sanic(application)
 # 设置请求体最大为 400MB
 app.config.REQUEST_MAX_SIZE = 400 * 1024 * 1024
-jwt_secret = config['JWT_SECRET']
-app.config.SANIC_JWT_SECRET = jwt_secret
-Initialize(app,
-            responses_class= QAResponses,
-            authenticate=login,
-            path_to_authenticate='/auth/login',
-            path_to_refresh='/auth/refresh_token')
+# jwt_secret = config['JWT_SECRET']
+# app.config.SANIC_JWT_SECRET = jwt_secret
+# Initialize(app,
+#             responses_class= QAResponses,
+#             authenticate=login,
+#             url_prefix='/api/auth/login',
+#             #path_to_authenticate='/api/auth/login',
+#             #path_to_refresh='/api/auth/refresh_token',
+#             refresh_token_enabled=True,
+#             retrieve_refresh_token=retrieve_refresh_token,
+#             store_refresh_token=store_refresh_token
+#            )
 
 # 将 /qanything 路径映射到 ./dist/qanything 文件夹，并指定路由名称
-app.static('/qanything/', 'qanything_kernel/qanything_server/dist/qanything/', name='qanything', index="index.html")
+#app.static('/qanything/', 'qanything_kernel/qanything_server/dist/qanything/', name='qanything', index="index.html")
 
 # CORS中间件，用于在每个响应中添加必要的头信息
 @app.middleware("response")
@@ -218,21 +223,21 @@ async def init_local_doc_qa(app, loop):
     debug_logger.info(f"LocalDocQA started in {time.time() - start} seconds.")
     app.ctx.local_doc_qa = local_doc_qa
 
-@app.after_server_start
-async def print_info(app, loop):
-    print(f"已启动后端服务，请复制[  http://0.0.0.0:{args.port}/qanything/  ]到浏览器进行测试。", flush=True)
-    print("详细调试日志请查看 logs/debug_logs/debug.log，问答日志请查看logs/qa_logs/qa.log", flush=True)
-    # os.system("tail -f logs/debug_logs/debug.log")
-
-# 启动服务器并尝试自动打开浏览器的函数
-@app.after_server_start
-async def start_server_and_open_browser(app, loop):
-    try:
-        print(f"Opening browser at http://{args.host}:{args.port}/qanything/")
-        webbrowser.open(f"http://{args.host}:{args.port}/qanything/")
-    except Exception as e:
-        # 记录或处理任何异常
-        print(f"Failed to open browser: {e}")
+# @app.after_server_start
+# async def print_info(app, loop):
+#     print(f"已启动后端服务，请复制[  http://0.0.0.0:{args.port}/qanything/  ]到浏览器进行测试。", flush=True)
+#     print("详细调试日志请查看 logs/debug_logs/debug.log，问答日志请查看logs/qa_logs/qa.log", flush=True)
+#     # os.system("tail -f logs/debug_logs/debug.log")
+#
+# # 启动服务器并尝试自动打开浏览器的函数
+# @app.after_server_start
+# async def start_server_and_open_browser(app, loop):
+#     try:
+#         print(f"Opening browser at http://{args.host}:{args.port}/qanything/")
+#         webbrowser.open(f"http://{args.host}:{args.port}/qanything/")
+#     except Exception as e:
+#         # 记录或处理任何异常
+#         print(f"Failed to open browser: {e}")
 
 
 #app.add_route(document, "/api/docs", methods=['GET'])
@@ -258,16 +263,18 @@ app.add_route(get_qa_info, "/api/local_qa/get_qa_info", methods=['POST'])  # tag
 app.add_route(new_session, "/api/local_qa/new_session", methods=['POST'])  # tags=["新建会话"]
 app.add_route(rename_session, "/api/local_qa/rename_session", methods=['POST'])  # tags=["重命名会话"]
 app.add_route(delete_session, "/api/local_qa/delete_session", methods=['POST']) # tags=["删除会话"]
-app.add_route(list_sessions, "/api/local_qa/list_session", methods=['POST']) #tags=["会话列表"]
+app.add_route(list_sessions, "/api/local_qa/list_sessions", methods=['POST']) #tags=["会话列表"]
 
 #auth
+#app.add_route(login, "/api/auth/login", methods=['POST']) # tags=["登录"]
 app.add_route(list_users, "/api/auth/list_users", methods=['POST']) # tags=["获取用户信息"]
 app.add_route(add_user, "/api/auth/add_user", methods=['POST']) # tags=["新增用户"]
 app.add_route(change_user, "/api/auth/change_user", methods=['POST']) # tags=["修改用户信息"]
+#app.add_route(change_user_profile_pic, "/api/auth/change_user_profile_pic", methods=['POST']) # tags=["修改用户头像"]
 app.add_route(change_password, "/api/auth/change_password", methods=['POST']) # tags=["修改密码"]
 app.add_route(delete_user, "/api/auth/delete_user", methods=['POST']) # tags=["删除用户"]
 app.add_route(get_user, "/api/auth/user_profile", methods=['POST']) # tags=["获取用户信息"]
-app.add_route(list_roles, "/api/auth/list_users", methods=['POST']) # tags=["角色列表"]
+app.add_route(list_roles, "/api/auth/list_roles", methods=['POST']) # tags=["角色列表"]
 app.add_route(add_role, "/api/auth/add_role", methods=['POST']) # tags=["增加角色"]
 app.add_route(change_role, "/api/auth/change_role", methods=['POST']) # tags=["修改角色"]
 app.add_route(delete_role, "/api/auth/delete_role", methods=['POST']) # tags=["删除角色"]
