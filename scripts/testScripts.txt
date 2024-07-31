@@ -23,6 +23,8 @@ curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role_id":"admin", "relate_kbs":[["KB8d6573b5263945fa9ab033c4f504b337","add,delete,change,read"]]}' http://localhost:10779/api/auth/change_role
 
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "role_id":"admin", "relate_kbs":[]}' http://localhost:10779/api/auth/change_role
+
 会话：
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/local_qa/list_sessions
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_name":"测试会话"}' http://localhost:10778/api/local_qa/new_session
@@ -37,3 +39,5 @@ curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1","kb_name":"test2"}' http://localhost:10778/api/local_qa/new_knowledge_base
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "kb_ids":["KB82cba117fef04e8b83cfff6bea91329a"]}' http://localhost:10778/api/local_qa/delete_knowledge_base
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_id":"SESSION5db4c706b9bc463ca2eb0f92c7fb83a5", "kb_ids":["KB8d6573b5263945fa9ab033c4f504b337"], "question":"什么是rag", "streaming":true}' http://localhost:10778/api/local_qa/local_doc_chat

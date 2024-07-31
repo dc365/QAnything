@@ -339,15 +339,15 @@ async def local_doc_chat(req: request):
     chat_user_id = user_id
     if user_id is None:
         return sanic_json({"code": 2002, "msg": f'输入非法！request.json：{req.json}，请检查！'})
-    is_valid = validate_user_id(user_id)
-    if not is_valid:
-        return sanic_json({"code": 2005, "msg": get_invalid_user_id_msg(user_id=user_id)})
+    # is_valid = validate_user_id(user_id)
+    # if not is_valid:
+    #     return sanic_json({"code": 2005, "msg": get_invalid_user_id_msg(user_id=user_id)})
     debug_logger.info('local_doc_chat %s', user_id)
     #会话检查
     session_id = safe_get(req, 'session_id')
     if session_id is None:
         return sanic_json({"code": 2002, "msg":f'输入非法！request.json：{req.json}，请检查！'})
-    if not local_doc_qa.mysql_client.check_session_exist(session_id):
+    if not local_doc_qa.mysql_client.check_session_exist(user_id, session_id):
         return sanic_json({"code": 2003, "msg": "fail, Session {} not found".format(session_id)})
     debug_logger.info('session %s', session_id)
     bot_id = safe_get(req, 'bot_id')

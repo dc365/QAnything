@@ -707,16 +707,21 @@ class KnowledgeBaseManager:
         debug_logger.info("change role {}".format(role_id))
 
     def change_role_permissions(self, role_id, kb_permissions):
-        for i in range(len(kb_permissions)):
-            kb_p = kb_permissions[i]
-            query = "SELECT role_id FROM RolePermission where role_id = ? AND kb_id = ?"
-            r = self.execute_query_(query, (role_id,kb_p[0]))
-            if r is not None and len(r)>0:
-                query = "UPDATE RolePermission set kb_permission = ? where role_id = ? AND kb_id = ?"
-            else:
-                query = "INSERT INTO RolePermission (kb_permission, role_id, kb_id) VALUES (?, ?, ?)"
-            is_commit = (i + 1) == len(kb_permissions)
-            self.execute_query_(query, ( kb_p[1], role_id, kb_p[0]), commit= is_commit)
+        print(kb_permissions)
+        if len(kb_permissions) == 0:
+            query = "UPDATE RolePermission set kb_permission = ? where role_id = ?"
+            self.execute_query_(query, ('', role_id), commit=True)
+        else:
+            for i in range(len(kb_permissions)):
+                kb_p = kb_permissions[i]
+                query = "SELECT role_id FROM RolePermission where role_id = ? AND kb_id = ?"
+                r = self.execute_query_(query, (role_id, kb_p[0]))
+                if r is not None and len(r)>0:
+                    query = "UPDATE RolePermission set kb_permission = ? where role_id = ? AND kb_id = ?"
+                else:
+                    query = "INSERT INTO RolePermission (kb_permission, role_id, kb_id) VALUES (?, ?, ?)"
+                is_commit = (i + 1) == len(kb_permissions)
+                self.execute_query_(query, ( kb_p[1], role_id, kb_p[0]), commit= is_commit)
 
     def delete_role(self, role_id):
         query = "DELETE from Role where role_id = ?"

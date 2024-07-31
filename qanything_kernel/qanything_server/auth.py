@@ -279,10 +279,10 @@ async def change_role(req: request):
     role_id = safe_get(req, 'role_id')
     if role_id is None:
         return sanic_json({"code": 2002, "msg": f'输入非法！request.json：{req.json}，请检查！'})
-    debug_logger.info("add role %s", role_id)
+    debug_logger.info("change role %s", role_id)
     role_name = safe_get(req, 'role_name')
     permissions = safe_get(req, 'relate_kbs')
-    if (role_name is None or role_name == '') and permissions is None:
+    if role_name is None and permissions is None:
         return sanic_json({"code": 2003, "msg": f'未提供角色名或权限，请检查！'})
     role_exist = local_doc_qa.mysql_client.check_role_exist(role_id)
     if not role_exist:
