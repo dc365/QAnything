@@ -5,6 +5,7 @@ from datetime import datetime
 from sanic_jwt import Responses, exceptions, protected
 from sanic import request
 from sanic.response import json as sanic_json
+from sanic_jwt.endpoints import AuthenticateEndpoint
 import jwt
 from qanything_kernel.core.local_doc_qa import LocalDocQA
 from qanything_kernel.utils.custom_log import debug_logger, qa_logger
@@ -12,7 +13,8 @@ from qanything_kernel.utils.general_utils import *
 
 __all__ = ["login", "add_user", "list_users", "get_user", "change_user", "change_user_profile_pic", "change_password", "delete_user",
            "store_refresh_token", "retrieve_refresh_token",
-           "list_roles", "add_role", "change_role", "delete_role", "QAResponses"]
+           "list_roles", "add_role", "change_role", "delete_role",
+           "QAResponses", "MyAuthenticateEndpoint"]
 
 async def login(req: request, *args, **kwargs):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
@@ -21,16 +23,17 @@ async def login(req: request, *args, **kwargs):
     if user_name is None or passwd is None:
         raise exceptions.AuthenticationFailed("Missing username or password.")
     debug_logger.info("login %s", user_name)
-    is_right,user_id = local_doc_qa.mysql_client.check_passwd(user_name, passwd)
+    is_right, user_id = local_doc_qa.mysql_client.check_passwd(user_name, passwd)
     if not is_right:
+        #return {'user_id': ''}
         raise exceptions.AuthenticationFailed("Invalid username or password")
     else:
-        #return { 'user_id': user_id }
-        return sanic_json({"code": 200, "msg": "success",
-                   "data": { "user_id": user_id,
-                       "access_token": "test", "refresh_token": "refresh_token_test"}})
+        return { 'user_id': user_id }
+        # return sanic_json({"code": 200, "msg": "success",
+        #            "data": { "user_id": user_id,
+        #                "access_token": "test", "refresh_token": "refresh_token_test"}})
 
-#@protected()
+@protected()
 async def add_user(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_name = safe_get(req, 'user_name')
@@ -76,7 +79,7 @@ async def add_user(req: request):
                        "data": {"user_id": user_id}})
 
 
-#@protected()
+@protected()
 async def change_user(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_id = safe_get(req, 'user_id')
@@ -110,6 +113,7 @@ async def change_user(req: request):
     return sanic_json({"code": 200, "msg": "change user {} success".format(user_id),
                        })
 
+@protected()
 async def change_user_profile_pic(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_id = safe_get(req, 'user_id')
@@ -118,11 +122,11 @@ async def change_user_profile_pic(req: request):
     if not user_exist:
         return sanic_json({"code": 2001, "msg": "fail, user {} not exist".format(user_id)})
     profile_pic = safe_get(req, 'profile_pic')
-    local_doc_qa.mysql_client.change_user(user_id, profile_pic)
+    local_doc_qa.mysql_client.change_user_profile_pic(user_id, profile_pic)
     return sanic_json({"code": 200, "msg": "change user {} success".format(user_id),
                        })
 
-#@protected()
+@protected()
 async def list_users(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_type = safe_get(req, 'user_type')
@@ -166,11 +170,22 @@ async def list_users(req: request):
                         "data": datas
                        })
 
-#@protected()
+@protected()
 async def get_user(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_id = safe_get(req, 'user_id')
-    debug_logger.info("get user %s", user_id)
+    if user_id is not None:
+        debug_logger.info("get user %s", user_id)
+    header = req.headers.get("authorization", None)
+    if user_id is None and header is None:
+        return sanic_json({"code": 401, "msg": "fail, authorization error"})
+    #print(header)
+    prefix, jwt_token = header.split(" ")
+    if prefix != 'Bearer':
+        return sanic_json({"code": 401, "msg": "fail, authorization error"})
+    r = jwt.decode(jwt_token, options={"verify_signature": False})
+    if user_id is None:
+        user_id = r['user_id']
     user_exist = local_doc_qa.mysql_client.check_user_exist_(user_id)
     if not user_exist:
         return sanic_json({"code": 2001, "msg": "fail, user {} not exist".format(user_id)})
@@ -197,7 +212,7 @@ async def get_user(req: request):
         return sanic_json({"code": 2002, "msg": "failed".format(user_id),
                        })
 
-#@protected()
+@protected()
 async def delete_user(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_id = safe_get(req, 'user_id')
@@ -209,7 +224,7 @@ async def delete_user(req: request):
     return sanic_json({"code": 200, "msg": "delete user {} success".format(user_id),
                        })
 
-#@protected()
+@protected()
 async def change_password(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     user_id = safe_get(req, 'user_id')
@@ -231,7 +246,7 @@ async def change_password(req: request):
     local_doc_qa.mysql_client.change_passwd(user_id, password)
     return sanic_json({"code": 200, "msg": "change user {} password success".format(user_id)})
 
-#@protected()
+@protected()
 async def list_roles(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     role_infos = local_doc_qa.mysql_client.get_role_list()
@@ -253,7 +268,7 @@ async def list_roles(req: request):
     return sanic_json({ "code": 200, "msg": "success",
                         "data": datas
                        })
-#@protected()
+@protected()
 async def add_role(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     role_id = safe_get(req, 'role_id')
@@ -273,7 +288,7 @@ async def add_role(req: request):
                            "role_id": role_id
                        }})
 
-#@protected()
+@protected()
 async def change_role(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     role_id = safe_get(req, 'role_id')
@@ -293,7 +308,8 @@ async def change_role(req: request):
         local_doc_qa.mysql_client.change_role_permissions(role_id, permissions)
     return sanic_json({"code": 200, "msg": "success".format(role_id)})
 
-#@protected()
+
+@protected()
 async def delete_role(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     role_id = safe_get(req, 'role_id')
@@ -305,18 +321,30 @@ async def delete_role(req: request):
     return sanic_json({"code": 200, "msg": "delete role {} success".format(role_id),
                        })
 
+
 def store_refresh_token(user_id, refresh_token, *args, **kwargs):
     from qanything_kernel.connector.database.mysql.mysql_client import KnowledgeBaseManager
     mysql_client = KnowledgeBaseManager()
-    old_r = mysql_client.get_refresh_token(user_id)
-    if old_r is None:
-        mysql_client.add_refresh_token(user_id, refresh_token)
+    mysql_client.add_refresh_token(user_id, refresh_token)
+
 
 def retrieve_refresh_token(req: request, user_id, *args, **kwargs):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     r= local_doc_qa.mysql_client.get_refresh_token(user_id)
-    print(r)
+    #print(r)
     return r
+
+
+class MyAuthenticateEndpoint(AuthenticateEndpoint):
+    async def post(self, request, *args, **kwargs):
+        try:
+            r = await super().post(request, *args, **kwargs)
+            return r
+        except exceptions.AuthenticationFailed as e:
+            return {
+                "code": 401,
+                "msg": e.message
+            }
 
 class QAResponses(Responses):
     @staticmethod
@@ -324,14 +352,22 @@ class QAResponses(Responses):
                             user=None,
                             access_token=None,
                             refresh_token=None):
+        # if user['user_id'].strip() == '':
+        #     return {
+        #         "code": 401,
+        #         "msg": "用户名或密码错误",
+        #         "access_token": ""
+        #     }
         r = jwt.decode(access_token, options={"verify_signature": False})
-        exp  = r['exp']
+        exp = r['exp']
         exp_time = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(exp))
         return {
             "code":200,
             "msg":"success",
-            "data":{
-                "user_id": user['user_id']  if user is not None else '',
+            "access_token": "",
+            "refresh_token": "",
+            "data": {
+                "user_id": user['user_id'] if user is not None else '',
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "exp": exp_time
@@ -359,6 +395,7 @@ class QAResponses(Responses):
         return {
             "code": 200,
             "msg":"success",
+            "access_token": "",
             "data":{
                 "access_token": access_token,
                 "exp": exp_time
@@ -373,7 +410,8 @@ class QAResponses(Responses):
             else [exception.args[0]]
         )
         return sanic_json(
-            {   "code": exception.status_code,
+            {
+                "code": exception.status_code,
                 "msg": reasons,
                 "exception": exception.__class__.__name__},
             status=exception.status_code,

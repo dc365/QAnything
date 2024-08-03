@@ -10,6 +10,8 @@ curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user_name": "admin", "user_type": "user", "pid":0, "role_ids":["admin","admin2"]}' http://localhost:10778/api/auth/change_user
 
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "uXt4oF7SNhuCEpAAoCo2yik", "user_name": "分组1.1", "user_type": "group","pid":"u7d2f38d82d174dc5b10d32fdfe33b45b"}' http://localhost:10778/api/auth/change_user
+
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "test", "password": "ceshimima"}' http://localhost:10778/api/auth/add_user
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1"}' http://localhost:10778/api/auth/user_profile

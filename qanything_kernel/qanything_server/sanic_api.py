@@ -35,8 +35,9 @@ parser = ArgumentParser()
 from sanic import Sanic
 from sanic import response as sanic_response
 from sanic.worker.manager import WorkerManager
-from sanic_jwt import Initialize,initialize
-from dotenv import dotenv_values
+from sanic_jwt import Initialize,initialize, Configuration
+from sanic_jwt.endpoints import RefreshEndpoint, VerifyEndpoint, RetrieveUserEndpoint
+from dotenv import load_dotenv, find_dotenv, dotenv_values
 import signal
 import requests
 from modelscope import snapshot_download
@@ -94,18 +95,19 @@ if os_system != 'Darwin':
             print(f"当前系统glibc版本为{glibc_version}<2.28，无法使用onnxruntime-gpu(cuda12.x)，将安装onnxruntime来代替", flush=True)
             os.system("pip install onnxruntime")
     elif not args.use_cpu:
+        pass
         # 官方发布的1.17.1不支持cuda12以上的系统，需要根据官方文档:https://onnxruntime.ai/docs/install/里提到的地址手动下载whl
-        if not check_package_version("onnxruntime-gpu", "1.17.1"):
-            download_url = f"https://aiinfra.pkgs.visualstudio.com/PublicPackages/_apis/packaging/feeds/9387c3aa-d9ad-4513-968c-383f6f7f53b8/pypi/packages/onnxruntime-gpu/versions/1.17.1/onnxruntime_gpu-1.17.1-cp3{python3_version}-cp3{python3_version}-{system_name}.whl/content"
-            debug_logger.info(f'开始从{download_url}下载onnxruntime，也可以手动下载并通过pip install *.whl安装')
-            whl_name = f'onnxruntime_gpu-1.17.1-cp3{python3_version}-cp3{python3_version}-{system_name}.whl'
-            download_file(download_url, whl_name)
-            exit_status = os.system(f"pip install {whl_name}")
-            if exit_status != 0:
-                # raise ValueError(f"安装onnxruntime失败，请手动安装{whl_name}")
-                debug_logger.warning(f"安装onnxruntime-gpu失败，将安装onnxruntime来代替")
-                print(f"安装onnxruntime-gpu失败，将安装onnxruntime来代替", flush=True)
-                os.system("pip install onnxruntime")
+        # if not check_package_version("onnxruntime-gpu", "1.17.1"):
+        #     download_url = f"https://aiinfra.pkgs.visualstudio.com/PublicPackages/_apis/packaging/feeds/9387c3aa-d9ad-4513-968c-383f6f7f53b8/pypi/packages/onnxruntime-gpu/versions/1.17.1/onnxruntime_gpu-1.17.1-cp3{python3_version}-cp3{python3_version}-{system_name}.whl/content"
+        #     debug_logger.info(f'开始从{download_url}下载onnxruntime，也可以手动下载并通过pip install *.whl安装')
+        #     whl_name = f'onnxruntime_gpu-1.17.1-cp3{python3_version}-cp3{python3_version}-{system_name}.whl'
+        #     download_file(download_url, whl_name)
+        #     exit_status = os.system(f"pip install {whl_name}")
+        #     if exit_status != 0:
+        #         # raise ValueError(f"安装onnxruntime失败，请手动安装{whl_name}")
+        #         debug_logger.warning(f"安装onnxruntime-gpu失败，将安装onnxruntime来代替")
+        #         print(f"安装onnxruntime-gpu失败，将安装onnxruntime来代替", flush=True)
+        #         os.system("pip install onnxruntime")
     if not args.use_openai_api:
         if not check_package_version("vllm", "0.2.7"):
             os.system(f"pip install vllm==0.2.7 -i https://pypi.mirrors.ustc.edu.cn/simple/ --trusted-host pypi.mirrors.ustc.edu.cn")
@@ -163,31 +165,47 @@ else:
     debug_logger.info(f'{args.model}路径已存在，不再重复下载大模型（如果下载出错可手动删除此目录）')
     debug_logger.info(f"CUDA_DEVICE: {model_config.CUDA_DEVICE}")
 
+
 from .handler import *
 from .auth import *
 from qanything_kernel.core.local_doc_qa import LocalDocQA
 
 WorkerManager.THRESHOLD = 6000
 
-config = dotenv_values(".env")
-application = 'qa_test'#config["APPLICATION"]
+config = dotenv_values(find_dotenv())
+application = config["APPLICATION"]
 if application is None:
     application = "QA"
+
+
+class MyJWTConfiguration(Configuration):
+    expiration_delta = 60 * 360  #1分钟 * 60
+
+
 app = Sanic(application)
 # 设置请求体最大为 400MB
 app.config.REQUEST_MAX_SIZE = 400 * 1024 * 1024
-# jwt_secret = config['JWT_SECRET']
-# app.config.SANIC_JWT_SECRET = jwt_secret
-# Initialize(app,
-#             responses_class= QAResponses,
-#             authenticate=login,
-#             url_prefix='/api/auth/login',
-#             #path_to_authenticate='/api/auth/login',
-#             #path_to_refresh='/api/auth/refresh_token',
-#             refresh_token_enabled=True,
-#             retrieve_refresh_token=retrieve_refresh_token,
-#             store_refresh_token=store_refresh_token
-#            )
+jwt_secret = config['JWT_SECRET']
+app.config.SANIC_JWT_SECRET = jwt_secret
+# custom_endpoints = [
+#     ("/api/auth/login", MyAuthenticateEndpoint),
+#     ("/api/auth/refresh_token", RefreshEndpoint),
+#     ("/api/auth/me", RetrieveUserEndpoint),
+#     ("/api/auth/verify", VerifyEndpoint),
+# ]
+
+Initialize(app,
+            responses_class= QAResponses,
+            configuration_class=MyJWTConfiguration,
+            authenticate=login,
+            url_prefix='/api/auth',
+            path_to_authenticate='login',
+            path_to_refresh='refresh_token',
+            refresh_token_enabled=True,
+            retrieve_refresh_token=retrieve_refresh_token,
+            store_refresh_token=store_refresh_token,
+            #class_views=custom_endpoints
+           )
 
 # 将 /qanything 路径映射到 ./dist/qanything 文件夹，并指定路由名称
 #app.static('/qanything/', 'qanything_kernel/qanything_server/dist/qanything/', name='qanything', index="index.html")

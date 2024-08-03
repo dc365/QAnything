@@ -618,7 +618,7 @@ class KnowledgeBaseManager:
                 " where user_id=?"
         self.execute_query_(query, (user_name, password, profile_pic, user_state, telephone, region, wechat_id, role_ids, user_id), commit=True)
 
-    def change_user(self, user_id, profile_pic):
+    def change_user_profile_pic(self, user_id, profile_pic):
         #role_ids_str = ','.join(role_ids)
         query = "update User set profile_pic=? where user_id = ? "
         self.execute_query_(query, (profile_pic, user_id), commit=True)
@@ -649,7 +649,7 @@ class KnowledgeBaseManager:
         is_true = result is not None and len(result) > 0
         if is_true:
             user_id = result[0][0]
-        return is_true,user_id
+        return is_true, user_id
 
     def check_user_exist(self, user_id):
         return self.check_user_exist_(user_id)
@@ -670,8 +670,13 @@ class KnowledgeBaseManager:
 
     #token 管理
     def add_refresh_token(self, user_id, refresh_token):
-        query = "INSERT INTO UserToken(user_id, refresh_token) VALUES (?, ?)"
-        self.execute_query_(query, (user_id, refresh_token), commit=True)
+        old = self.get_refresh_token(user_id)
+        print(old)
+        if old is None:
+            query = "INSERT INTO UserToken(refresh_token, user_id) VALUES (?, ?)"
+        else:
+            query = "UPDATE UserToken SET refresh_token = ? WHERE user_id = ?"
+        self.execute_query_(query, (refresh_token, user_id), commit=True)
 
     def get_refresh_token(self, user_id):
         query = "SELECT refresh_token from UserToken where user_id = ? AND enable = 1"

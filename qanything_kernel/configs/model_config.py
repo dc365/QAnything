@@ -79,7 +79,7 @@ VECTOR_SEARCH_SCORE_THRESHOLD = config.model_config['VECTOR_SEARCH_SCORE_THRESHO
 # 是否开启中文标题加强，以及标题增强的相关配置
 # 通过增加标题判断，判断哪些文本为标题，并在metadata中进行标记；
 # 然后将文本与往上一级的标题进行拼合，实现文本信息的增强。
-ZH_TITLE_ENHANCE = False
+ZH_TITLE_ENHANCE = True
 
 # MILVUS向量数据库地址
 MILVUS_HOST_LOCAL = '0.0.0.0'
