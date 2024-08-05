@@ -314,7 +314,7 @@ async def delete_role(req: request):
     local_doc_qa: LocalDocQA = req.app.ctx.local_doc_qa
     role_id = safe_get(req, 'role_id')
     debug_logger.info("delete role %s", role_id)
-    user_exist = local_doc_qa.mysql_client.check_role_exist_(role_id)
+    user_exist = local_doc_qa.mysql_client.check_role_exist(role_id)
     if not user_exist:
         return sanic_json({"code": 2001, "msg": "fail, role {} not exist".format(role_id)})
     local_doc_qa.mysql_client.delete_role(role_id)

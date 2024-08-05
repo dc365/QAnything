@@ -372,8 +372,9 @@ class KnowledgeBaseManager:
 
     # [知识库] 获取指定用户的所有知识库 
     def get_knowledge_bases(self, user_id):
-        query = "SELECT kb_id, kb_name FROM KnowledgeBase WHERE user_id = ? AND deleted = 0"
-        return self.execute_query_(query, (user_id,), fetch=True)
+        #query = "SELECT kb_id, kb_name FROM KnowledgeBase WHERE user_id = ? AND deleted = 0"
+        query = "SELECT kb_id, kb_name FROM KnowledgeBase WHERE deleted = 0"
+        return self.execute_query_(query, (), fetch=True)
     
     def get_users(self):
         query = "SELECT user_id FROM User"
