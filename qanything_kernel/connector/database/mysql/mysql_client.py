@@ -205,6 +205,7 @@ class KnowledgeBaseManager:
             CREATE TABLE IF NOT EXISTS QaLogs (
                 qa_id VARCHAR(64) PRIMARY KEY,
                 user_id VARCHAR(255) NOT NULL,
+                session_id VARCHAR(255) NOT NULL,
                 bot_id VARCHAR(255),
                 kb_ids LONGTEXT NOT NULL,
                 query VARCHAR(512) NOT NULL,
@@ -224,6 +225,10 @@ class KnowledgeBaseManager:
 
         # 如果不存在则创建索引
         create_index_query = "CREATE INDEX IF NOT EXISTS index_bot_id ON QaLogs (bot_id);"
+        self.execute_query_(create_index_query, (), commit=True)
+
+        # 如果不存在则创建索引
+        create_index_query = "CREATE INDEX IF NOT EXISTS index_session_id ON QaLogs (session_id);"
         self.execute_query_(create_index_query, (), commit=True)
 
         # 旧的File不存在file_path，补上默认值：'UNK'
@@ -426,7 +431,7 @@ class KnowledgeBaseManager:
         debug_logger.info("add_file: {}".format(file_id))
         return file_id, "success"
 
-    def add_qalog(self, user_id, bot_id, kb_ids, query, model, product_source, time_record, history, condense_question,
+    def add_qalog(self, user_id, session_id, bot_id, kb_ids, query, model, product_source, time_record, history, condense_question,
                   prompt, result, retrieval_documents, source_documents):
         debug_logger.info("add_qalog: {}".format(query))
         qa_id = uuid.uuid4().hex
@@ -435,10 +440,10 @@ class KnowledgeBaseManager:
         source_documents = json.dumps(source_documents, ensure_ascii=False)
         history = json.dumps(history, ensure_ascii=False)
         time_record = json.dumps(time_record, ensure_ascii=False)
-        insert_query = ("INSERT INTO QaLogs (qa_id, user_id, bot_id, kb_ids, query, model, product_source, time_record, "
+        insert_query = ("INSERT INTO QaLogs (qa_id, user_id, session_id,bot_id, kb_ids, query, model, product_source, time_record, "
                         "history, condense_question, prompt, result, retrieval_documents, source_documents) "
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        self.execute_query_(insert_query, (qa_id, user_id, bot_id, kb_ids, query, model, product_source, time_record,
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        self.execute_query_(insert_query, (qa_id, user_id, session_id, bot_id, kb_ids, query, model, product_source, time_record,
                                            history, condense_question, prompt, result, retrieval_documents,
                                            source_documents), commit=True)
 
@@ -462,7 +467,7 @@ class KnowledgeBaseManager:
         query = "SELECT qa_id, user_id, bot_id, kb_ids, query, model, history, result, timestamp FROM QaLogs WHERE qa_id IN ({})".format(placeholders)
         return self.execute_query_(query, ids, fetch=True)
 
-    def get_qalog_by_filter(self, need_info, user_id=None, kb_ids=None, query=None, bot_id=None, time_range=None):
+    def get_qalog_by_filter(self, need_info, user_id=None, session_id=None, kb_ids=None, query=None, bot_id=None, time_range=None):
         if kb_ids:
             kb_ids = json.dumps(kb_ids, ensure_ascii=False)
         if not time_range:
@@ -484,6 +489,9 @@ class KnowledgeBaseManager:
         if user_id:
             mysql_query += " AND user_id = ?"
             params.append(user_id)
+        if session_id:
+            mysql_query += " AND session_id = ?"
+            params.append(session_id)
         if kb_ids:
             mysql_query += " AND kb_ids = ?"
             params.append(kb_ids)

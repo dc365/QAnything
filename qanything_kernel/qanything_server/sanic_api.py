@@ -277,6 +277,7 @@ app.add_route(rename_knowledge_base, "/api/local_qa/rename_knowledge_base", meth
 # app.add_route(upload_faqs, "/api/local_qa/upload_faqs", methods=['POST'])  # tags=["上传FAQ"]
 app.add_route(get_file_base64, "/api/local_qa/get_file_base64", methods=['POST'])  # tags=["获取文件base64"]
 app.add_route(get_qa_info, "/api/local_qa/get_qa_info", methods=['POST'])  # tags=["获取QA信息"]
+app.add_route(get_qa_log, "/api/local_qa/get_qa_log", methods=['POST'])  # tags=["获取QA信息"]
 
 app.add_route(new_session, "/api/local_qa/new_session", methods=['POST'])  # tags=["新建会话"]
 app.add_route(rename_session, "/api/local_qa/rename_session", methods=['POST'])  # tags=["重命名会话"]
