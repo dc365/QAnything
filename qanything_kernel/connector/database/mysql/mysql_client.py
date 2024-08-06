@@ -378,8 +378,10 @@ class KnowledgeBaseManager:
     # [知识库] 获取指定用户的所有知识库 
     def get_knowledge_bases(self, user_id):
         #query = "SELECT kb_id, kb_name FROM KnowledgeBase WHERE user_id = ? AND deleted = 0"
-        query = "SELECT kb_id, kb_name FROM KnowledgeBase WHERE deleted = 0"
-        return self.execute_query_(query, (), fetch=True)
+        query = ("SELECT kb_id, kb_name, user_name FROM KnowledgeBase "
+                 "LEFT JOIN User on KnowledgeBase.user_id=User.user_id "
+                 "WHERE KnowledgeBase.deleted = 0 AND KnowledgeBase.user_id = ?")
+        return self.execute_query_(query, (user_id,), fetch=True)
     
     def get_users(self):
         query = "SELECT user_id FROM User"
@@ -507,7 +509,7 @@ class KnowledgeBaseManager:
         qa_infos = [dict(zip(need_info.split(", "), qa_info)) for qa_info in qa_infos]
         for qa_info in qa_infos:
             if 'timestamp' in qa_info:
-                qa_info['timestamp'] = qa_info['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
+                qa_info['timestamp'] = qa_info['timestamp'] #qa_info['timestamp'].strftime("%Y-%m-%d %H:%M:%S")
             if 'kb_ids' in qa_info:
                 qa_info['kb_ids'] = json.loads(qa_info['kb_ids'])
             if 'time_record' in qa_info:
@@ -632,14 +634,25 @@ class KnowledgeBaseManager:
         query = "update User set profile_pic=? where user_id = ? "
         self.execute_query_(query, (profile_pic, user_id), commit=True)
 
-    def get_user_list(self, user_type, pid=-1):
+    def get_user_list(self, user_type, pid=-1, user_name=None, user_state=None):
         if user_type == 'group':
-            query = "SELECT user_id, ROWID as id, pid, user_name, user_type from User where user_type = ?"
-            return self.execute_query_(query, (user_type,), fetch=True)
+            params = [user_type]
+            query = "SELECT user_id, ROWID as id, pid, user_name, user_type from User where user_type = ? "
+            if user_name is not None:
+                query += " AND user_name = ?"
+                params.append(user_name)
+            return self.execute_query_(query, params, fetch=True)
         else:
+            params = [user_type, pid]
             query = "SELECT user_id, ROWID as id, pid, user_name, user_type, telephone, password, user_state, profile_pic," \
-                    "wechat_id,role_ids,region,create_by,add_datetime from User where user_type=? AND pid=?"
-            return self.execute_query_(query, (user_type, pid), fetch=True)
+                    "wechat_id,role_ids,region,create_by,add_datetime from User where user_type=? AND pid=? "
+            if user_name is not None:
+                query += " AND user_name = ? "
+                params.append(user_name)
+            if user_state is not None:
+                query += " AND user_state=? "
+                params.append(user_state)
+            return self.execute_query_(query, params, fetch=True)
 
     def get_user(self, user_id):
         query = "SELECT ROWID as id, pid, user_name,user_type, telephone, password, user_state, " \

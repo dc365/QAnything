@@ -169,7 +169,7 @@ async def list_kbs(req: request):
     kb_infos = local_doc_qa.mysql_client.get_knowledge_bases(user_id)
     data = []
     for kb in kb_infos:
-        data.append({"kb_id": kb[0], "kb_name": kb[1]})
+        data.append({"kb_id": kb[0], "kb_name": kb[1], "create_by": kb[2]})
     debug_logger.info("all kb infos: {}".format(data))
     return sanic_json({"code": 200, "data": data})
 

@@ -136,8 +136,9 @@ async def list_users(req: request):
         pid = safe_get(req, 'pid')
     else:
         pid = 0
-
-    user_infos = local_doc_qa.mysql_client.get_user_list(user_type, pid)
+    user_state = safe_get(req, 'user_state')
+    user_name = safe_get(req, 'user_name')
+    user_infos = local_doc_qa.mysql_client.get_user_list(user_type, pid, user_name, user_state)
     datas = []
     if user_type != 'user':
         for user in user_infos:

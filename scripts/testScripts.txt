@@ -1,6 +1,6 @@
 
 
-
+-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4xIiwiZXhwIjoxNzIyOTc0NjAxfQ.62auiN1mI5-2mZQccPtHUPrzacuUwkaOyeT0ro9oW4w"
 
 用户：
 登陆
@@ -43,3 +43,9 @@ curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1","kb_na
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "kb_ids":["KB82cba117fef04e8b83cfff6bea91329a"]}' http://localhost:10778/api/local_qa/delete_knowledge_base
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_id":"SESSION5db4c706b9bc463ca2eb0f92c7fb83a5", "kb_ids":["KB8d6573b5263945fa9ab033c4f504b337"], "question":"什么是rag", "streaming":true}' http://localhost:10778/api/local_qa/local_doc_chat
+
+
+curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "session_id":"SESSION5db4c706b9bc463ca2eb0f92c7fb83a5"}' http://localhost:10778/api/local_qa/get_qa_log
+
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4xIiwiZXhwIjoxNzIyOTc0NjAxfQ.62auiN1mI5-2mZQccPtHUPrzacuUwkaOyeT0ro9oW4w"
+-d '{"user_id": "admin1", "session_id":"SESSION5db4c706b9bc463ca2eb0f92c7fb83a5"}' http://localhost:10778/api/local_qa/get_qa_log
