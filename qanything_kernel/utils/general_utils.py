@@ -68,8 +68,8 @@ def format_source_documents(ori_source_documents):
 
 
 def process_content(src_content):
-    pattern = r"下文与\((\w+)\)有关。(\w+)"
-    result = re.sub(pattern, r"相关片段：\（\1\）\2", src_content)
+    pattern = r'下文与\((.+?)\)有关\。(?P<content>.+)'
+    result = re.sub(pattern, r'相关片段：（\1）\2', src_content)
     return result
 
 
