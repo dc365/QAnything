@@ -420,7 +420,7 @@ async def local_doc_chat(req: request):
                         for inum, doc in enumerate(resp["source_documents"]):
                             source_info = {'file_id': doc.metadata.get('source', doc.metadata.get('file_id','')),
                                            'file_name': doc.metadata.get('title', doc.metadata.get('file_name','')),
-                                           'content': doc.page_content,
+                                           'content': process_content(doc.page_content),
                                            'retrieval_query': doc.metadata['retrieval_query'],
                                            'score': str(doc.metadata['score'])}
                             source_documents.append(source_info)

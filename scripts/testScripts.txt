@@ -6,6 +6,8 @@
 登陆
 curl -X POST -H "Content-Type: application/json" -d '{"user_name": "admin", "password": "a1d2m1n#"}' http://localhost:10778/api/auth/login
 
+{"access_token":"","refresh_token":"","code":200,"msg":"success","data":{"user_id":"admin1","access_token":"","refresh_token":"5a30dbdd9b10bbdb2eda0020ec071c40c2fb3b2d0337f5b7","exp":"2024-08-16 16:26:32"}}
+
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user_type": "user", "pid":0}' http://localhost:10778/api/auth/list_users
 
 curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "user_name": "admin", "user_type": "user", "pid":0, "role_ids":["admin","admin2"]}' http://localhost:10778/api/auth/change_user
@@ -49,3 +51,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"user_id": "admin1", "sess
 
 curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4xIiwiZXhwIjoxNzIyOTc0NjAxfQ.62auiN1mI5-2mZQccPtHUPrzacuUwkaOyeT0ro9oW4w"
 -d '{"user_id": "admin1", "session_id":"SESSION5db4c706b9bc463ca2eb0f92c7fb83a5"}' http://localhost:10778/api/local_qa/get_qa_log
+
+文件：
+curl -X POST -H "Content-Type: application/json, Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4xIiwiZXhwIjoxNzIzNzk2NzkyfQ.TS4X8l1nw7_jG7q5PRGBuKBojxJaLii8ta4bttml-oI"
+-d '{"user_id": "admin1", "file_id":"a301baa6b11a4675a1442ce6ac688cb0"}' http://localhost:10778/api/local_qa/get_file_base64

@@ -89,7 +89,8 @@ MILVUS_USER = ''
 MILVUS_PASSWORD = ''
 MILVUS_DB_NAME = ''
 
-SQLITE_DATABASE = os.path.join(root_path, "QANY_DB", "qanything.db")
+#SQLITE_DATABASE = os.path.join(root_path, "QANY_DB", "qanything.db")
+SQLITE_DATABASE = os.path.join(root_path, "QANY_DB", "llm.db")
 MILVUS_LITE_LOCATION = os.path.join(root_path, "QANY_DB", "milvus")
 FAISS_LOCATION = os.path.join(root_path, "QANY_DB", "faiss")
 FAISS_INDEX_FILE_PATH = os.path.join(FAISS_LOCATION, "faiss_index.idx")

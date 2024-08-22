@@ -20,7 +20,7 @@ from qanything_kernel.configs.model_config import UPLOAD_ROOT_PATH
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
 
-__all__ = ['write_check_file', 'isURL', 'format_source_documents', 'get_time', 'safe_get', 'truncate_filename',
+__all__ = ['write_check_file', 'isURL', 'format_source_documents', 'process_content', 'get_time', 'safe_get', 'truncate_filename',
            'read_files_with_extensions', 'validate_user_id', 'get_invalid_user_id_msg', 'num_tokens', 'download_file', 
            'get_gpu_memory_utilization', 'check_package_version', 'simplify_filename', 'check_and_transform_excel',
            'export_qalogs_to_excel', 'get_table_infos']
@@ -57,7 +57,7 @@ def format_source_documents(ori_source_documents):
         # source_str = doc_source if isURL(doc_source) else os.path.split(doc_source)[-1]
         source_info = {'file_id': doc.metadata.get('source', doc.metadata.get('file_id','')),
                        'file_name': doc.metadata.get('title', doc.metadata.get('file_name','')),
-                       'content': doc.page_content,
+                       'content': process_content(doc.page_content),
                        'retrieval_query': doc.metadata['retrieval_query'],
                        # 'kernel': doc.metadata['kernel'],
                        'file_path': doc.metadata.get('file_path', ''),
@@ -65,6 +65,12 @@ def format_source_documents(ori_source_documents):
                        'embed_version': doc.metadata.get('embed_version','')}
         source_documents.append(source_info)
     return source_documents
+
+
+def process_content(src_content):
+    pattern = r"下文与\((\w+)\)有关。(\w+)"
+    result = re.sub(pattern, r"相关片段：\（\1\）\2", src_content)
+    return result
 
 
 def get_time(func):
